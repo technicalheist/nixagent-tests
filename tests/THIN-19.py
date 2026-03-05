@@ -44,9 +44,9 @@ REPORT_FILE  = os.path.join(REPORTS_DIR,     f"{TEST_ID}.md")
 REVIEW_FILE  = os.path.join(CODE_REVIEW_DIR, f"{TEST_ID}.md")
 SPEC_FILE    = os.path.join(TESTS_DIR,       f"{TEST_ID}.spec.js")
 
-JIRA_CLI_DOCS_DIR        = os.path.join(BASE_DIR, "docs", "jira-cli")
-AGENT_BROWSER_SKILL_FILE = os.path.join(BASE_DIR, "docs", "agent-browser", "SKILL.md")
-PLAYWRIGHT_PROJECT_DIR   = os.path.join(BASE_DIR, "public", "projects")
+JIRA_CLI_DOCS_DIR      = os.path.join(BASE_DIR, "docs", "jira-cli")
+BROWSER_USE_SKILL_FILE = os.path.join(BASE_DIR, "docs", "browser-use", "SKILL.md")
+PLAYWRIGHT_PROJECT_DIR = os.path.join(BASE_DIR, "public", "projects")
 
 # Ensure all output directories exist
 for _dir in [TICKETS_DIR, TESTS_DIR, REPORTS_DIR, CODE_REVIEW_DIR]:
@@ -71,7 +71,7 @@ PYTHON_EXE  = r".venv\Scripts\python.exe" if IS_WINDOWS else ".venv/bin/python"
 # SHARED SAFETY DIRECTIVE  (injected into every agent's system prompt)
 # ═══════════════════════════════════════════════════════════════════
 SHELL_SAFETY_DIRECTIVE = f"""
-⚠️  CRITICAL SHELL COMMAND RULES — apply to EVERY shell command you execute:
+CRITICAL SHELL COMMAND RULES — apply to EVERY shell command you execute:
 - The system is running on: {platform.system()} — use {SHELL_NAME} syntax for ALL shell commands.
 - Do NOT mix shell syntaxes. {"Bash / sh / cmd syntax is forbidden." if IS_WINDOWS else "PowerShell / cmd syntax is forbidden."}
 - NEVER run any command that blocks or hangs indefinitely
@@ -82,7 +82,7 @@ SHELL_SAFETY_DIRECTIVE = f"""
 - Chain multiple commands with `{CMD_CHAIN}` ({SHELL_NAME}). {"NEVER use &&." if IS_WINDOWS else "NEVER use `;` for chaining."}
 - If a command times out, record the failure and move on — never retry the same hanging command.
 
-🚨 ABSOLUTE WORKSPACE RESTRICTION — NO EXCEPTIONS:
+ABSOLUTE WORKSPACE RESTRICTION — NO EXCEPTIONS:
 - You MUST only read, write, list, and execute commands inside the `public/` folder:
     {os.path.join(BASE_DIR, 'public')}
 - You are STRICTLY FORBIDDEN from accessing, executing, or writing to any path outside
@@ -93,7 +93,7 @@ SHELL_SAFETY_DIRECTIVE = f"""
 - Using `cd`, `Set-Location`, or any command that changes the working directory to a path
   outside `public/` is STRICTLY FORBIDDEN.
 
-🚨 PYTHON EXECUTION IS STRICTLY FORBIDDEN:
+PYTHON EXECUTION IS STRICTLY FORBIDDEN:
 - You MUST NOT execute any Python scripts (.py files) under any circumstances.
 - NEVER call `python`, `python3`, or `{PYTHON_EXE}` (or any Python variant).
 - The pipeline is managed externally. Do NOT attempt to run or re-invoke any .py files.
@@ -128,27 +128,28 @@ immediately reply with "TICKET_EXISTS" and stop — do not call any tools.
 
 DEVELOPER_AGENT_PROMPT = f"""You are DeveloperAgent. You write production-ready Playwright JS automation tests.
 
-## ══ HARD RULE — READ BEFORE ANYTHING ELSE ══════════════════════════════════
-Every agent-browser command MUST be its own separate execute_shell_command call.
-NEVER chain agent-browser commands with `;` or any other separator in one call.
+{SHELL_SAFETY_DIRECTIVE}
 
-  ❌ FORBIDDEN (causes hang):
-     execute_shell_command("agent-browser open <url> ; agent-browser wait 3000 ; agent-browser snapshot -i")
+## HARD RULE — READ BEFORE ANYTHING ELSE
+Every browser-use command MUST be its own separate execute_shell_command call.
+NEVER chain browser-use commands with `;` or any other separator in one call.
 
-  ✅ CORRECT — four separate calls (always close first to reset stale daemon):
-     execute_shell_command("agent-browser close")
-     execute_shell_command("agent-browser open <url> --wait-until commit")
-     execute_shell_command("agent-browser wait 3000")
-     execute_shell_command("agent-browser snapshot -i")
+  FORBIDDEN (causes hang on Windows):
+     execute_shell_command("browser-use open <url> ; browser-use state ; browser-use screenshot")
+
+  CORRECT — each command is a separate call:
+     execute_shell_command("browser-use close --all")
+     execute_shell_command("browser-use open <url>")
+     execute_shell_command("browser-use state")
+     execute_shell_command("browser-use screenshot")
 
 Violating this rule causes the entire pipeline to hang indefinitely.
-═══════════════════════════════════════════════════════════════════════════════
 
-## ── STEP 0: Check — skip if code already exists ────────────────────────────
+## STEP 0: Check — skip if code already exists
 List the files inside: {TESTS_DIR}
 If a file prefixed with "{TEST_ID}" already exists, reply with "CODE_EXISTS" and stop.
 
-## ── STEP 1 (MANDATORY FIRST STEP): Read the Jira Ticket ───────────────────
+## STEP 1 (MANDATORY FIRST STEP): Read the Jira Ticket
 Read the ticket file:
     {TICKET_FILE}
 You MUST completely understand the following before proceeding:
@@ -157,45 +158,42 @@ You MUST completely understand the following before proceeding:
 - Every acceptance criterion and the exact steps to automate
 Do NOT assume any test data — every value must come directly from the ticket.
 
-## ── STEP 2 (MANDATORY): Read the agent-browser Skill Docs ─────────────────
-Before writing a single line of test code, read the agent-browser documentation:
-    {AGENT_BROWSER_SKILL_FILE}
+## STEP 2 (MANDATORY): Read the browser-use Skill Docs
+Before writing a single line of test code, read the browser-use documentation:
+    {BROWSER_USE_SKILL_FILE}
 This is non-negotiable. You must understand the tool before using it.
 
-## ── STEP 3 (MANDATORY): Discover Real Locators via agent-browser ───────────
-You MUST use agent-browser to navigate the live page and capture the actual
-element refs. Do NOT guess or invent locators.
-Each sub-step below is a SEPARATE execute_shell_command call:
+## STEP 3 (MANDATORY): Discover Real Locators via browser-use
+You MUST use browser-use to navigate the live page and capture element indices.
+Do NOT guess or invent indices. Each sub-step below is a SEPARATE execute_shell_command call:
 
-  a) execute_shell_command("agent-browser close")
-     ALWAYS run this first — kills any stale daemon left over from a previous
-     iteration or timed-out command. Ignore any error output from this call.
+  a) execute_shell_command("browser-use close --all")
+     ALWAYS run this first — closes any stale session. Ignore errors.
 
-  b) execute_shell_command("agent-browser open <URL-FROM-TICKET> --wait-until commit")
-     Use `--wait-until commit` — this returns as soon as the HTTP response is received
-     without waiting for the load event (which never fires on modern SPAs and causes a hang).
+  b) execute_shell_command("browser-use open <URL-FROM-TICKET>")
+     Opens the URL and starts the browser if not already running.
 
-  c) execute_shell_command("agent-browser wait 3000")
+  c) execute_shell_command("browser-use state")
+     Returns the current URL, page title, and all clickable/interactive elements
+     with numeric indices (e.g. [0] button "Login", [1] input "Email").
+     Study the output carefully — these indices are your locators.
 
-  d) execute_shell_command("agent-browser snapshot -i")
-     Study the output carefully: note every @eN ref, its type, placeholder,
-     label, id, and name. These refs are your locators.
+  d) For each interaction (fill or click), one call each:
+     execute_shell_command("browser-use input <index> \\"value-from-ticket\\"")
+     execute_shell_command("browser-use click <index>")
 
-  e) For each interaction (fill or click), one call each:
-     execute_shell_command("agent-browser fill @eN \\"value-from-ticket\\"")
-     execute_shell_command("agent-browser click @eN")
+  e) After any navigation or DOM change, always re-run state to get fresh indices:
+     execute_shell_command("browser-use state")
+     Indices are invalidated after navigation — always re-run state before using new indices.
 
-  f) After any navigation or DOM change:
-     execute_shell_command("agent-browser wait 3000")
-     execute_shell_command("agent-browser snapshot -i")
-     Refs are invalidated after navigation — always re-snapshot before using new refs.
+  f) execute_shell_command("browser-use screenshot {os.path.join(TESTS_DIR, TEST_ID + '-discovery.png')}")
 
-  g) execute_shell_command("agent-browser screenshot")
+  g) execute_shell_command("browser-use close --all")
 
-  h) execute_shell_command("agent-browser close")
-
-## ── STEP 4: Write the Playwright JS Test ───────────────────────────────────
-Using ONLY the real locators discovered in STEP 3, write a robust Playwright test.
+## STEP 4: Write the Playwright JS Test
+Using ONLY the real locators (CSS selectors, text content, roles) discovered in STEP 3,
+write a robust Playwright test. Do NOT use browser-use indices directly in Playwright code —
+translate them to stable CSS/text/role selectors based on what you saw in the browser-use state output.
 
 - Save the file to: {SPEC_FILE}
 - Name `describe` and `test` blocks based solely on what the ticket describes.
@@ -207,18 +205,13 @@ Using ONLY the real locators discovered in STEP 3, write a robust Playwright tes
   (run from: {PLAYWRIGHT_PROJECT_DIR})
 - Reply with "CODE_WRITTEN" when the file is saved.
 
-## ⚠️ agent-browser CRITICAL RULES
-- Call `agent-browser` directly — NEVER `npx agent-browser` (npx stays attached and hangs).
-- ALWAYS run `agent-browser close` as the VERY FIRST command before any `open`. This kills any
-  stale daemon left over from a previous run or timed-out iteration. Ignore errors.
-- ALWAYS use `--wait-until commit` with `agent-browser open` to prevent the command from blocking
-  on modern SPAs that never fire the `load` event:
-      ✅ agent-browser open <url> --wait-until commit
-      ❌ agent-browser open <url>   ← hangs indefinitely on SPAs
-- NEVER use `agent-browser wait --load networkidle` — it hangs forever on modern web apps.
-  Always use `agent-browser wait <ms>` (e.g. `agent-browser wait 3000`).
-- Do NOT chain agent-browser commands. One command = one execute_shell_command call.
-- Always call `agent-browser close` when all browser tasks are done.
+## browser-use CRITICAL RULES
+- Call `browser-use` directly — NEVER `npx browser-use`.
+- ALWAYS run `browser-use close --all` as the VERY FIRST command before any `open`. Ignore errors.
+- ALWAYS run `browser-use state` after opening a page or after any click/navigation
+  to get fresh indices before the next interaction.
+- Do NOT chain browser-use commands. One command = one execute_shell_command call.
+- Always call `browser-use close --all` when all browser tasks are done.
 
 ## Constraints
 - Do NOT write README or documentation files.
@@ -247,12 +240,12 @@ reply with "REPORT_EXISTS" and stop.
 2. Run the test using npx from the Playwright project directory:
        {CMD_CD} npx playwright test tests/<discovered-spec-filename> --timeout 60000
    Replace <discovered-spec-filename> with the actual file name you found.
-   ⚠️ NEVER use `python`, `python3`, or run any .py file. Only `npx playwright test` is permitted.
+   NEVER use `python`, `python3`, or run any .py file. Only `npx playwright test` is permitted.
 
 ## On PASS
 1. Reply with exactly: PASS
 2. Write a detailed Markdown report to: {REPORT_FILE}
-   Include: test date/time, ticket ID, spec file name, result (PASSED ✅),
+   Include: test date/time, ticket ID, spec file name, result (PASSED),
    tests run/passed/failed, duration, and any notable observations.
 
 ## On FAIL
