@@ -97,8 +97,9 @@ NEVER chain agent-browser commands with `;` or any other separator in one call.
   ❌ FORBIDDEN (causes hang):
      execute_shell_command("agent-browser open <url> ; agent-browser wait 3000 ; agent-browser snapshot -i")
 
-  ✅ CORRECT — three separate calls:
-     execute_shell_command("agent-browser open <url>")
+  ✅ CORRECT — four separate calls (always close first to reset stale daemon):
+     execute_shell_command("agent-browser close")
+     execute_shell_command("agent-browser open <url> --wait-until commit")
      execute_shell_command("agent-browser wait 3000")
      execute_shell_command("agent-browser snapshot -i")
 
@@ -128,26 +129,32 @@ You MUST use agent-browser to navigate the live page and capture the actual
 element refs. Do NOT guess or invent locators.
 Each sub-step below is a SEPARATE execute_shell_command call:
 
-  a) execute_shell_command("agent-browser open <URL-FROM-TICKET>")
+  a) execute_shell_command("agent-browser close")
+     ALWAYS run this first — kills any stale daemon left over from a previous
+     iteration or timed-out command. Ignore any error output from this call.
 
-  b) execute_shell_command("agent-browser wait 3000")
+  b) execute_shell_command("agent-browser open <URL-FROM-TICKET> --wait-until commit")
+     Use `--wait-until commit` — this returns as soon as the HTTP response is received
+     without waiting for the load event (which never fires on modern SPAs and causes a hang).
 
-  c) execute_shell_command("agent-browser snapshot -i")
+  c) execute_shell_command("agent-browser wait 3000")
+
+  d) execute_shell_command("agent-browser snapshot -i")
      Study the output carefully: note every @eN ref, its type, placeholder,
      label, id, and name. These refs are your locators.
 
-  d) For each interaction (fill or click), one call each:
+  e) For each interaction (fill or click), one call each:
      execute_shell_command("agent-browser fill @eN \\"value-from-ticket\\"")
      execute_shell_command("agent-browser click @eN")
 
-  e) After any navigation or DOM change:
+  f) After any navigation or DOM change:
      execute_shell_command("agent-browser wait 3000")
      execute_shell_command("agent-browser snapshot -i")
      Refs are invalidated after navigation — always re-snapshot before using new refs.
 
-  f) execute_shell_command("agent-browser screenshot")
+  g) execute_shell_command("agent-browser screenshot")
 
-  g) execute_shell_command("agent-browser close")
+  h) execute_shell_command("agent-browser close")
 
 ## ── STEP 4: Write the Playwright JS Test ───────────────────────────────────
 Using ONLY the real locators discovered in STEP 3, write a robust Playwright test.
@@ -164,6 +171,12 @@ Using ONLY the real locators discovered in STEP 3, write a robust Playwright tes
 
 ## ⚠️ agent-browser CRITICAL RULES
 - Call `agent-browser` directly — NEVER `npx agent-browser` (npx stays attached and hangs).
+- ALWAYS run `agent-browser close` as the VERY FIRST command before any `open`. This kills any
+  stale daemon left over from a previous run or timed-out iteration. Ignore errors.
+- ALWAYS use `--wait-until commit` with `agent-browser open` to prevent the command from blocking
+  on modern SPAs that never fire the `load` event:
+      ✅ agent-browser open <url> --wait-until commit
+      ❌ agent-browser open <url>   ← hangs indefinitely on SPAs
 - NEVER use `agent-browser wait --load networkidle` — it hangs forever on modern web apps.
   Always use `agent-browser wait <ms>` (e.g. `agent-browser wait 3000`).
 - Do NOT chain agent-browser commands. One command = one execute_shell_command call.

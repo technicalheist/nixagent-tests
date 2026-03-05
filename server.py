@@ -21,7 +21,10 @@ import os
 import re
 import glob
 import json
+import queue
+import signal
 import subprocess
+import threading
 from flask import Flask, Response, jsonify, request, render_template
 
 app = Flask(__name__)
@@ -84,6 +87,9 @@ def run_test():
     if not test_id or not os.path.isfile(test_file):
         return jsonify({"error": "Test not found"}), 404
 
+    # Kill the subprocess if it produces no output for this many seconds.
+    IDLE_TIMEOUT = 300  # 5 minutes — adjust as needed
+
     def generate():
         proc = subprocess.Popen(
             [PYTHON_EXE, "-u", test_file],
@@ -94,9 +100,36 @@ def run_test():
             errors="replace",
             cwd=BASE_DIR,
         )
+
+        line_queue: queue.Queue = queue.Queue()
+        _SENTINEL = object()   # signals the reader thread that stdout closed
+
+        def _reader():
+            """Push every line from proc.stdout onto the queue, then sentinel."""
+            try:
+                for line in proc.stdout:
+                    line_queue.put(line)
+            finally:
+                line_queue.put(_SENTINEL)
+
+        reader_thread = threading.Thread(target=_reader, daemon=True)
+        reader_thread.start()
+
         try:
-            for line in proc.stdout:
-                yield f"data: {json.dumps({'log': line.rstrip()})}\n\n"
+            while True:
+                try:
+                    item = line_queue.get(timeout=IDLE_TIMEOUT)
+                except queue.Empty:
+                    # No output for IDLE_TIMEOUT seconds — kill the stuck process
+                    proc.kill()
+                    yield (
+                        f"data: {json.dumps({'log': f'[server] Process killed — no output for {IDLE_TIMEOUT}s (hung command)'})}\n\n"
+                    )
+                    break
+
+                if item is _SENTINEL:
+                    break  # stdout closed normally
+                yield f"data: {json.dumps({'log': item.rstrip()})}\n\n"
         finally:
             proc.wait()
             yield f"data: {json.dumps({'done': True, 'code': proc.returncode})}\n\n"
