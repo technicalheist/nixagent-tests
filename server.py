@@ -28,7 +28,8 @@ app = Flask(__name__)
 
 BASE_DIR   = os.path.abspath(os.path.dirname(__file__))
 TESTS_DIR  = os.path.join(BASE_DIR, "tests")
-PYTHON_EXE = os.path.join(BASE_DIR, ".venv", "Scripts", "python.exe")
+_venv_python = os.path.join(BASE_DIR, ".venv", "Scripts", "python.exe")
+PYTHON_EXE = _venv_python if os.path.isfile(_venv_python) else sys.executable
 
 # ─────────────────────────────────────────────────────────────────
 # ROUTES
