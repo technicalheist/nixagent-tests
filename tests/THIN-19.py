@@ -9,6 +9,7 @@ Run:
 """
 
 import sys
+import platform
 # Force UTF-8 output — prevents cp1252 UnicodeEncodeError on Windows
 # when printing box-drawing / emoji characters in banner/section lines.
 if hasattr(sys.stdout, "reconfigure"):
@@ -52,18 +53,51 @@ for _dir in [TICKETS_DIR, TESTS_DIR, REPORTS_DIR, CODE_REVIEW_DIR]:
     os.makedirs(_dir, exist_ok=True)
 
 # ═══════════════════════════════════════════════════════════════════
+# OS DETECTION  — drives shell syntax in all agent prompts
+# ═══════════════════════════════════════════════════════════════════
+IS_WINDOWS  = platform.system() == "Windows"
+SHELL_NAME  = "PowerShell" if IS_WINDOWS else "bash"
+# Command chaining operator
+CMD_CHAIN   = ";" if IS_WINDOWS else "&&"
+# How to change directory in a one-liner before running npx
+# Windows:  Set-Location '<dir>' ; npx ...
+# Linux:    cd '<dir>' && npx ...
+CMD_CD      = f"Set-Location '{PLAYWRIGHT_PROJECT_DIR}' ;" if IS_WINDOWS \
+              else f"cd '{PLAYWRIGHT_PROJECT_DIR}' &&"
+# Python executable (used only in the ban message for clarity)
+PYTHON_EXE  = r".venv\Scripts\python.exe" if IS_WINDOWS else ".venv/bin/python"
+
+# ═══════════════════════════════════════════════════════════════════
 # SHARED SAFETY DIRECTIVE  (injected into every agent's system prompt)
 # ═══════════════════════════════════════════════════════════════════
-SHELL_SAFETY_DIRECTIVE = """
+SHELL_SAFETY_DIRECTIVE = f"""
 ⚠️  CRITICAL SHELL COMMAND RULES — apply to EVERY shell command you execute:
-- ALL shell commands MUST be compatible with PowerShell ONLY. Do NOT use bash, sh, cmd, or Unix-style syntax.
+- The system is running on: {platform.system()} — use {SHELL_NAME} syntax for ALL shell commands.
+- Do NOT mix shell syntaxes. {"Bash / sh / cmd syntax is forbidden." if IS_WINDOWS else "PowerShell / cmd syntax is forbidden."}
 - NEVER run any command that blocks or hangs indefinitely
   (e.g. interactive prompts, watch, tail -f, npx serve, npm start).
 - ALWAYS add a timeout flag when available (--timeout, --max-time, etc.).
   The built-in execute_shell_command timeout is 120 seconds — stay well within it.
 - If a command needs user input or a TTY, use -y / --yes / --no-interactive instead.
-- Chain multiple commands with `;` (PowerShell). NEVER use `&&`.
+- Chain multiple commands with `{CMD_CHAIN}` ({SHELL_NAME}). {"NEVER use &&." if IS_WINDOWS else "NEVER use `;` for chaining."}
 - If a command times out, record the failure and move on — never retry the same hanging command.
+
+🚨 ABSOLUTE WORKSPACE RESTRICTION — NO EXCEPTIONS:
+- You MUST only read, write, list, and execute commands inside the `public/` folder:
+    {os.path.join(BASE_DIR, 'public')}
+- You are STRICTLY FORBIDDEN from accessing, executing, or writing to any path outside
+  of the `public/` folder, including: the repo root, `tests/`, `docs/`, `.agents/`,
+  `.venv/`, `static/`, `templates/`, or any other top-level directory.
+- Reading documentation files (e.g. SKILL.md) outside `public/` is ONLY allowed for
+  reading — NEVER executing or writing.
+- Using `cd`, `Set-Location`, or any command that changes the working directory to a path
+  outside `public/` is STRICTLY FORBIDDEN.
+
+🚨 PYTHON EXECUTION IS STRICTLY FORBIDDEN:
+- You MUST NOT execute any Python scripts (.py files) under any circumstances.
+- NEVER call `python`, `python3`, or `{PYTHON_EXE}` (or any Python variant).
+- The pipeline is managed externally. Do NOT attempt to run or re-invoke any .py files.
+- If you encounter a .py file, you may only READ its content — never execute it.
 """
 
 # ═══════════════════════════════════════════════════════════════════
@@ -72,6 +106,8 @@ SHELL_SAFETY_DIRECTIVE = """
 
 JIRA_AGENT_PROMPT = f"""You are JiraAgent. Your ONLY job is to fetch a Jira ticket and save it to disk.
 
+{SHELL_SAFETY_DIRECTIVE}
+
 ## Check first — skip if already done
 If the file already exists at:
     {TICKET_FILE}
@@ -79,13 +115,15 @@ immediately reply with "TICKET_EXISTS" and stop — do not call any tools.
 
 ## If the file does NOT exist
 1. Read the Jira CLI documentation at: {JIRA_CLI_DOCS_DIR}
+   (Reading only — do NOT execute any file from that folder.)
 2. Fetch the Jira ticket {TEST_ID} using the Jira CLI tool.
 3. Save the complete ticket content to: {TICKET_FILE}
+   (This path is inside `public/` — it is the ONLY directory you may write to.)
 4. Reply with "TICKET_SAVED" followed by a short summary of the ticket
    (title, description, acceptance criteria).
 
 ## You are DONE after saving the file. Do NOT delegate or mention any other agent.
-{SHELL_SAFETY_DIRECTIVE}"""
+"""
 
 
 DEVELOPER_AGENT_PROMPT = f"""You are DeveloperAgent. You write production-ready Playwright JS automation tests.
@@ -186,21 +224,30 @@ Using ONLY the real locators discovered in STEP 3, write a robust Playwright tes
 - Do NOT write README or documentation files.
 - Do NOT touch: {PLAYWRIGHT_PROJECT_DIR}/playwright.config.js
 - ALL test files MUST be written inside: {TESTS_DIR}
+- WORKSPACE RESTRICTION: You may ONLY read/write/execute commands inside:
+    {os.path.join(BASE_DIR, 'public')}
+  Any access outside this path is STRICTLY FORBIDDEN.
+- PYTHON EXECUTION BAN: NEVER run `python`, `python3`, or any .py file.
+  The pipeline is external — do NOT attempt to re-run or chain Python scripts.
 - Do NOT reference or call any other agent — the pipeline manages all handoffs.
-{SHELL_SAFETY_DIRECTIVE}"""
+"""
 
 
 TESTER_AGENT_PROMPT = f"""You are TesterAgent. Your ONLY job is to run the Playwright test and report results.
+
+{SHELL_SAFETY_DIRECTIVE}
 
 ## Check first — skip if report already exists
 If the report file already exists at: {REPORT_FILE}
 reply with "REPORT_EXISTS" and stop.
 
-## How to find and run the test (PowerShell)
+## How to find and run the test ({SHELL_NAME})
 1. List the test files inside {TESTS_DIR} and find the file prefixed with "{TEST_ID}".
-2. Run it from the Playwright project directory:
-       Set-Location '{PLAYWRIGHT_PROJECT_DIR}' ; npx playwright test tests/<discovered-spec-filename> --timeout 60000
+   Both of these paths are inside `public/` — the ONLY folder you may operate in.
+2. Run the test using npx from the Playwright project directory:
+       {CMD_CD} npx playwright test tests/<discovered-spec-filename> --timeout 60000
    Replace <discovered-spec-filename> with the actual file name you found.
+   ⚠️ NEVER use `python`, `python3`, or run any .py file. Only `npx playwright test` is permitted.
 
 ## On PASS
 1. Reply with exactly: PASS
@@ -215,10 +262,12 @@ reply with "REPORT_EXISTS" and stop.
 4. List explicit, actionable fix instructions for the developer.
 
 ## Do NOT fix the code yourself. The pipeline hands your feedback to the developer.
-{SHELL_SAFETY_DIRECTIVE}"""
+"""
 
 
 CODE_REVIEWER_AGENT_PROMPT = f"""You are CodeReviewerAgent. Your ONLY job is to review the completed test code.
+
+{SHELL_SAFETY_DIRECTIVE}
 
 ## Check first — skip if review already exists
 If the review file already exists at: {REVIEW_FILE}
@@ -226,12 +275,14 @@ reply with "REVIEW_EXISTS" and stop.
 
 ## If no review exists
 1. Read the test file(s) inside: {TESTS_DIR}
+   Both paths are inside `public/` — you MUST NOT access any path outside this folder.
 2. Write a thorough, insightful code review to: {REVIEW_FILE}
    Cover: code quality, locator robustness, error handling, assertions, maintainability.
 3. Reply with "REVIEW_COMPLETE".
 
-## Do NOT run any tests or modify any code.
-{SHELL_SAFETY_DIRECTIVE}"""
+## Do NOT run any tests, execute any commands, or modify any code.
+## PYTHON EXECUTION BAN: NEVER call python, python3, or execute any .py file.
+"""
 
 
 # ═══════════════════════════════════════════════════════════════════

@@ -4,6 +4,26 @@
 
 This project leverages a multi-agent Python architecture powered by `nixagent` to fully automate the web testing lifecycle. The system divides the workload across four specialized agents—JiraAgent, DeveloperAgent, TesterAgent, and CodeReviewerAgent—to seamlessly transition from reading a Jira ticket to executing, reporting, and reviewing automated browser tests.
 
+## 🚨 Critical Safety Boundaries — Mandatory for ALL Agents
+
+> These rules are **absolute**. No agent may deviate from them under any circumstance.
+
+### 1. Workspace Restriction — `public/` folder ONLY
+* Every agent **MUST** confine all file reads, writes, and shell command execution to within the `public/` folder of this repository.
+* **Executing or running commands from any path outside the `public/` folder is strictly forbidden.**
+* Specifically, agents **MUST NOT**:
+  * Read, write, or execute files from the repo root, `tests/`, `docs/`, `.agents/`, `.venv/`, `static/`, `templates/`, or any other top-level directory.
+  * Use `cd`, `Set-Location`, or any path redirection to navigate outside `public/`.
+* If an agent needs to locate a file outside `public/` (e.g., docs), it **may only read** it — it must never execute or write to it.
+
+### 2. No Python Script Execution
+* **Agents MUST NOT execute any Python scripts** (`.py` files) under any circumstances.
+* This means no calls to `python`, `python3`, `.venv\Scripts\python.exe` (Windows), `.venv/bin/python` (Linux/macOS), or any equivalent.
+* The pipeline is orchestrated externally. Agents must not attempt to re-invoke or chain Python scripts.
+* If an agent encounters a `.py` file, it **must only read its content** — never execute it.
+
+---
+
 ## Core Directives for All Agents
 
 * **Time and Resource Efficiency**: Time is our most precious resource. Every agent **MUST** prioritize speed and avoid duplicate work.
@@ -48,6 +68,8 @@ This project leverages a multi-agent Python architecture powered by `nixagent` t
 * **No Documentation**: Your job is *strictly* to run the browser, get locators, write the code, and test it. **DO NOT** generate any supplementary documentation, and **DO NOT** write a `README` file. This agent must operate at maximum speed.
 * **Playwright Configurations**: The Playwright setup is already configured globally. **DO NOT TOUCH** the `public/projects/playwright.config.js` file.
 * **Test Location**: All test scripts **MUST** strictly be written inside the `public/projects/tests/` folder.
+* **Workspace Restriction**: You may ONLY read/write/execute commands inside the `public/` folder. Any action outside this boundary is strictly forbidden.
+* **No Python Execution**: You MUST NOT run any `.py` files or invoke `python`/`python3` in any shell command.
 
 ### 3. TesterAgent
 
