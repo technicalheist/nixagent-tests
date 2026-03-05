@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Test Orchestrator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+
+<body>
+
+  <!-- HEADER -->
+  <header>
+    <div class="logo">
+      <div class="logo-icon">&#x1F916;</div>
+      <h1>AI Test Orchestrator <span>powered by VrizeAgent</span></h1>
+    </div>
+    <div class="header-controls">
+      <select id="testSelect">
+        <option value="">Loading tests&hellip;</option>
+      </select>
+      <button class="btn-theme" id="themeBtn" onclick="toggleTheme()"
+        title="Toggle light / dark mode">&#x1F319;</button>
+      <button class="btn-run" id="runBtn" disabled onclick="runTest()">
+        <span id="runBtnContent">&#x25B6; Run Test</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- LAYOUT -->
+  <div class="layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-label">Agents</div>
+      <div id="agentList">
+        <div class="agent-placeholder">Select a test to see agents</div>
+      </div>
+
+      <div class="stats-strip">
+        <div class="sidebar-label" style="margin-top:4px">Run Info</div>
+        <div class="stat"><span>Test</span> <span class="stat-val" id="stat-test">&#x2014;</span></div>
+        <div class="stat"><span>Status</span> <span class="stat-val" id="stat-status">Idle</span></div>
+        <div class="stat"><span>Duration</span> <span class="stat-val" id="stat-duration">&#x2014;</span></div>
+        <div class="stat"><span>Iterations</span><span class="stat-val" id="stat-iter">&#x2014;</span></div>
+      </div>
+    </aside>
+
+    <!-- LOG PANEL -->
+    <div class="log-panel">
+      <div class="log-header">
+        <div class="log-header-left">
+          <div class="log-dot" id="logDot"></div>
+          <span class="log-title">Live Output</span>
+        </div>
+        <button class="btn-clear" onclick="clearLog()">Clear</button>
+      </div>
+      <div class="log-body" id="logBody">
+        <div class="empty-log">
+          <div class="empty-log-icon">&#x26A1;</div>
+          <p>Select a test and click <strong>Run Test</strong> to start</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ARTIFACT PANEL (slides up after run) -->
+    <div class="artifact-panel" id="artifactPanel">
+      <div class="artifact-tabs">
+        <button class="tab-btn" id="tab-ticket" onclick="showTab('ticket')">&#x1F3AB; Ticket</button>
+        <button class="tab-btn" id="tab-spec" onclick="showTab('spec')">&#x1F4C4; Test Code</button>
+        <button class="tab-btn" id="tab-report" onclick="showTab('report')">&#x1F4CA; Report</button>
+        <button class="tab-btn" id="tab-review" onclick="showTab('review')">&#x1F50D; Code Review</button>
+      </div>
+      <div class="artifact-content" id="artifactContent">
+        <div class="artifact-empty">Select a tab above to view results</div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="/static/js/app.js"></script>
+</body>
+
+</html>

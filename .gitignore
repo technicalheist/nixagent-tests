@@ -1,0 +1,86 @@
+# ── Python ─────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+.Python
+
+# ── Virtual environments ────────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+
+# ── Environment / secrets ───────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── Public output (agent-generated — do not commit) ────────────────────────────
+# Generated files inside every public/ subfolder
+public/screenshots/*
+public/docs/*
+public/findings/*
+public/tickets/*
+public/codes/*
+public/test-results/*
+public/reports/*
+
+# Agent-generated *.md and *.js files anywhere under public/
+# Exception: playwright.config.js is hand-crafted and must stay tracked
+public/**/*.md
+public/**/*.js
+!public/project/playwright.config.js
+
+# Image files produced by browser automation / screenshots
+public/**/*.png
+public/**/*.jpg
+public/**/*.jpeg
+public/**/*.webp
+public/**/*.gif
+public/**/*.pdf
+
+# Generated Playwright test specs (inside project/tests/)
+public/project/tests/*
+!public/project/tests/.gitkeep
+
+# Playwright results
+public/project/test-results/
+public/project/playwright-report/
+
+# Top-level reports dir (legacy path)
+reports/*
+
+# Keep the folder structure in git via .gitkeep
+!public/screenshots/.gitkeep
+!public/docs/.gitkeep
+!public/findings/.gitkeep
+!public/tickets/.gitkeep
+!public/codes/.gitkeep
+!public/test-results/.gitkeep
+!public/reports/.gitkeep
+
+# ── macOS ───────────────────────────────────────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# ── IDE / editors ───────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ── Node (npx agent-browser cache) ──────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+
+# ── Logs ────────────────────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── agent-browser temp files ────────────────────────────────────────────────────
+skills-lock.json
