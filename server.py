@@ -2,8 +2,8 @@
 server.py
 ─────────
 Flask backend for the AI Test Orchestrator UI.
-Templates: templates/index.html
-Static:    static/css/style.css  |  static/js/app.js
+Templates: lib/templates/index.html
+Static:    lib/static/css/style.css  |  lib/static/js/app.js
 
 Run:
     .venv\Scripts\python.exe server.py
@@ -27,7 +27,9 @@ import subprocess
 import threading
 from flask import Flask, Response, jsonify, request, render_template
 
-app = Flask(__name__)
+app = Flask(__name__, 
+            static_folder=os.path.join("lib", "static"), 
+            template_folder=os.path.join("lib", "templates"))
 
 BASE_DIR   = os.path.abspath(os.path.dirname(__file__))
 TESTS_DIR  = os.path.join(BASE_DIR, "tests")
