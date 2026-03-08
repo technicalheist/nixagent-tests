@@ -1,0 +1,48 @@
+# Page snapshot
+
+```yaml
+- main [ref=e3]:
+  - img
+  - generic [ref=e6]:
+    - navigation [ref=e7]:
+      - button "Back" [ref=e8]:
+        - img "Back" [ref=e9]
+      - img [ref=e12]
+    - article [ref=e19]:
+      - article [ref=e20]:
+        - generic [ref=e21]:
+          - heading "Enter your password" [level=1] [ref=e24]
+          - article [ref=e25]:
+            - generic [ref=e26]:
+              - generic [ref=e27]:
+                - generic [ref=e28]:
+                  - generic [ref=e29]:
+                    - generic [ref=e30]: Password
+                    - generic [ref=e31]: "*"
+                  - link "Forgot password" [ref=e32] [cursor=pointer]:
+                    - /url: /auth/forgot-password/prompt
+                - generic [ref=e33]:
+                  - textbox "Password * Forgot password" [active] [ref=e34]
+                  - button "show" [ref=e35] [cursor=pointer]
+              - button "Login" [disabled] [ref=e36]:
+                - generic [ref=e37]:
+                  - generic [ref=e38]: Login
+                  - img [ref=e39]
+            - separator [ref=e41]:
+              - generic [ref=e42]: Or
+            - complementary [ref=e43]:
+              - heading "Get one time access link instead" [level=2] [ref=e45]
+              - generic [ref=e46]: We’ll send it to your email and login instantly without password.
+              - button "Login with access link" [ref=e47]:
+                - generic [ref=e48]:
+                  - generic [ref=e49]: Login with access link
+                  - img [ref=e50]
+            - separator [ref=e52]
+            - link "Pay as guest" [ref=e53] [cursor=pointer]:
+              - /url: /guest
+              - generic [ref=e54]: Pay as guest
+              - img [ref=e55]
+  - generic:
+    - generic:
+      - img
+```

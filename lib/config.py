@@ -10,13 +10,14 @@ TICKETS_DIR     = os.path.join(BASE_DIR, "public", "tickets")
 TESTS_DIR       = os.path.join(BASE_DIR, "public", "projects", "tests")
 REPORTS_DIR     = os.path.join(BASE_DIR, "public", "report")
 CODE_REVIEW_DIR = os.path.join(BASE_DIR, "public", "code-review")
+LOCATOR_DIR     = os.path.join(BASE_DIR, "public", "locators")
 
 JIRA_CLI_DOCS_DIR      = os.path.join(BASE_DIR, "docs", "jira-cli")
 BROWSER_USE_SKILL_FILE = os.path.join(BASE_DIR, "docs", "browser-use", "SKILL.md")
 PLAYWRIGHT_PROJECT_DIR = os.path.join(BASE_DIR, "public", "projects")
 
 # Ensure all output directories exist
-for _dir in [TICKETS_DIR, TESTS_DIR, REPORTS_DIR, CODE_REVIEW_DIR]:
+for _dir in [TICKETS_DIR, TESTS_DIR, REPORTS_DIR, CODE_REVIEW_DIR, LOCATOR_DIR]:
     os.makedirs(_dir, exist_ok=True)
 
 IS_WINDOWS  = platform.system() == "Windows"
@@ -61,4 +62,5 @@ def get_test_paths(test_id: str) -> dict:
         "report_file": os.path.join(REPORTS_DIR, f"{test_id}.md"),
         "review_file": os.path.join(CODE_REVIEW_DIR, f"{test_id}.md"),
         "spec_file": os.path.join(TESTS_DIR, f"{test_id}.spec.js"),
+        "locator_file": os.path.join(LOCATOR_DIR, f"{test_id}.md"),
     }

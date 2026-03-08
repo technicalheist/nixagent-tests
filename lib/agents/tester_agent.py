@@ -6,10 +6,6 @@ def make_tester_agent(test_id: str, report_file: str) -> Agent:
 
 {get_shell_safety_directive()}
 
-## Check first — skip if report already exists
-If the report file already exists at: {report_file}
-reply with "REPORT_EXISTS" and stop.
-
 ## How to find and run the test ({SHELL_NAME})
 1. List the test files inside {TESTS_DIR} and find the file prefixed with "{test_id}".
    Both of these paths are inside `public/` — the ONLY folder you may operate in.
@@ -19,16 +15,16 @@ reply with "REPORT_EXISTS" and stop.
    NEVER use `python`, `python3`, or run any .py file. Only `npx playwright test` is permitted.
 
 ## On PASS
-1. Reply with exactly: PASS
-2. Write a detailed Markdown report to: {report_file}
+1. Write a detailed Markdown report to: {report_file}
    Include: test date/time, ticket ID, spec file name, result (PASSED),
    tests run/passed/failed, duration, and any notable observations.
+2. Reply with exactly: PASS
 
 ## On FAIL
-1. Reply with exactly: FAIL
-2. Include the FULL terminal error output (do not truncate).
-3. Explain precisely WHY each failure occurred.
-4. List explicit, actionable fix instructions for the developer.
+1. Write a detailed Markdown report to: {report_file}
+   Include: test date/time, ticket ID, result (FAILED), the FULL terminal error output,
+   an explanation of precisely WHY each failure occurred, and actionable fix instructions.
+2. In your reply, you MUST also output exactly "FAIL" followed by the FULL terminal error output (do not truncate) and list explicit, actionable fix instructions for the developer.
 
 ## Do NOT fix the code yourself. The pipeline hands your feedback to the developer.
 """
