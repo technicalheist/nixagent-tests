@@ -247,6 +247,10 @@ select option { background: #1e1e2e; }
   border-color: rgba(239,68,68,0.4);
   background: rgba(239,68,68,0.06);
 }
+.agent-card.skipped {
+  border-color: rgba(100,116,139,0.4);
+  background: rgba(100,116,139,0.06);
+}
 
 .agent-placeholder {
   font-size: 12px; color: var(--muted); text-align: center;
@@ -262,6 +266,7 @@ select option { background: #1e1e2e; }
 .agent-card.active .agent-status { color: var(--primary); }
 .agent-card.done  .agent-status { color: var(--success); }
 .agent-card.failed .agent-status { color: var(--error); }
+.agent-card.skipped .agent-status { color: var(--muted); }
 
 .agent-dot {
   width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
@@ -271,6 +276,7 @@ select option { background: #1e1e2e; }
 .agent-card.active  .agent-dot { background: var(--primary); box-shadow: 0 0 8px var(--primary);  animation: pulse 1.2s infinite; }
 .agent-card.done    .agent-dot { background: var(--success);  box-shadow: 0 0 8px var(--success);  animation: none; }
 .agent-card.failed  .agent-dot { background: var(--error);    box-shadow: 0 0 8px var(--error);    animation: none; }
+.agent-card.skipped .agent-dot { background: var(--muted);    box-shadow: 0 0 8px var(--muted);    animation: none; }
 
 @keyframes pulse {
   0%,100% { opacity: 1; transform: scale(1); }

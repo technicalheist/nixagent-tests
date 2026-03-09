@@ -48,6 +48,7 @@ def automatedTestGenerator(test_id: str, max_iterations: int = 5):
         step_num += 1
     else:
         print(f"[Pipeline] Ticket already exists. Skipping Jira fetch step.")
+        print(f"[Pipeline] JiraAgent skipped")
 
     if not spec_exists:
         coordinator_tasks.append(f"{step_num}. Use `ask_agent_BrowserAgent` to navigate the ticket's URL(s), discover locators, and save the locators to {locator_file}.")
@@ -56,6 +57,8 @@ def automatedTestGenerator(test_id: str, max_iterations: int = 5):
         step_num += 1
     else:
         print(f"[Pipeline] Playwright spec already exists. Skipping Browser & Developer initial code write.")
+        print(f"[Pipeline] BrowserAgent skipped")
+        print(f"[Pipeline] DeveloperAgent skipped")
 
     coordinator_tasks.append(
         f"{step_num}. Feedback Loop (Do this up to {max_iterations} times):\n"
