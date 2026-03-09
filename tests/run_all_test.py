@@ -48,11 +48,12 @@ Instructions:
 5. Reply with "CONSOLIDATION_COMPLETE" once the file is fully written.
 """
 
-    agent = Agent(
+    from helpers.token_calculator import with_token_calculator, get_token_report
+    agent = with_token_calculator(Agent(
         name="ConsolidatorAgent",
         verbose=True,
         system_prompt=system_prompt
-    )
+    ))
     
     response = agent.run(
         "Please perform your step-by-step instructions to read all test reports and create a consolidated report.",
@@ -60,6 +61,42 @@ Instructions:
     )
     print("\n--- Consolidator Agent Response ---")
     print(response)
+    import re
+    from config import CODE_REVIEW_DIR
+    from helpers.token_calculator import global_token_report
+    
+    # Pre-parse individual code review specs and inject their separate Subprocess totals into the global tracker
+    for review_file in glob.glob(os.path.join(CODE_REVIEW_DIR, "*.md")):
+        test_id = os.path.basename(review_file).replace(".md", "")
+        # Only parse actual THIN test reviews, ignore any existing system files theoretically sitting here
+        try:
+            with open(review_file, "r", encoding="utf-8") as rf:
+                content = rf.read()
+            
+            in_match = re.search(r"TOTALS[\s\S]*?Input Tokens:\s*(\d+)", content)
+            out_match = re.search(r"TOTALS[\s\S]*?Output Tokens:\s*(\d+)", content)
+            cost_match = re.search(r"TOTALS[\s\S]*?Total Cost:\s*\$?([\d\.]+)", content)
+            
+            if in_match and out_match and cost_match:
+                global_token_report["agents"][f"Test execution ({test_id})"] = {
+                    "model": "Subprocess combined",
+                    "input_tokens": int(in_match.group(1)),
+                    "output_tokens": int(out_match.group(1)),
+                    "cost": float(cost_match.group(1))
+                }
+                global_token_report["total_input_tokens"] += int(in_match.group(1))
+                global_token_report["total_output_tokens"] += int(out_match.group(1))
+                global_token_report["total_cost"] += float(cost_match.group(1))
+        except Exception:
+            pass # Fails gracefully if no token report generated for specific test
+            
+    mode = "a" if os.path.exists(consolidated_file) else "w"
+    try:
+        with open(consolidated_file, mode, encoding="utf-8") as f:
+            f.write("\n" + get_token_report())
+        print("Successfully appended total cumulative token usage to the consolidated report.")
+    except Exception as e:
+        print(f"Failed to append token report: {e}")
 
 if __name__ == "__main__":
     setup_stdout_encoding()

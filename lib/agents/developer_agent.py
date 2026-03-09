@@ -54,4 +54,5 @@ Do NOT guess locators. Build your script based exactly on what the BrowserAgent 
   Any access outside this path is STRICTLY FORBIDDEN.
 - PYTHON EXECUTION BAN: NEVER run `python`, `python3`, or any .py file.
 """
-    return Agent(name="DeveloperAgent", verbose=True, system_prompt=system_prompt)
+    from helpers.token_calculator import with_token_calculator
+    return with_token_calculator(Agent(name="DeveloperAgent", verbose=True, system_prompt=system_prompt))

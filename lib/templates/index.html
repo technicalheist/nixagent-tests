@@ -18,7 +18,7 @@
   <header>
     <div class="logo">
       <div class="logo-icon">&#x1F916;</div>
-      <h1>AI Test Orchestrator <span>powered by VrizeAgent</span></h1>
+      <h1>AI Test Orchestrator <span>powered by VrizeAgent | Selected Model: {{ active_model }}</span></h1>
     </div>
     <div class="header-controls">
       <select id="testSelect">
@@ -75,6 +75,8 @@
         <button class="tab-btn" id="tab-spec" onclick="showTab('spec')">&#x1F4C4; Test Code</button>
         <button class="tab-btn" id="tab-report" onclick="showTab('report')">&#x1F4CA; Report</button>
         <button class="tab-btn" id="tab-review" onclick="showTab('review')">&#x1F50D; Code Review</button>
+        <button class="tab-btn" id="tab-consolidated" onclick="showTab('consolidated')" style="display: none;">&#x1F4CB;
+          Consolidated Report</button>
       </div>
       <div class="artifact-content" id="artifactContent">
         <div class="artifact-empty">Select a tab above to view results</div>
@@ -84,7 +86,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <script src="/static/js/app.js"></script>
+  <script src="/static/js/app.js?v=2"></script>
 </body>
 
 </html>

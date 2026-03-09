@@ -32,4 +32,33 @@ reply with "REVIEW_EXISTS" and stop.
 ## Do NOT run any tests, execute any commands, or modify any code.
 ## PYTHON EXECUTION BAN: NEVER call python, python3, or execute any .py file.
 """
-    return Agent(name="CodeReviewerAgent", verbose=True, system_prompt=system_prompt)
+    from helpers.token_calculator import with_token_calculator, get_token_report
+    import os
+    
+    agent = Agent(name="CodeReviewerAgent", verbose=True, system_prompt=system_prompt)
+    agent = with_token_calculator(agent)
+    
+    original_run = agent.run
+    def wrapped_run(*args, **kwargs):
+        res = original_run(*args, **kwargs)
+        
+        # After the reviewer agent finishes writing its review, append the clean recent token report 
+        if os.path.exists(review_file):
+            with open(review_file, "r", encoding="utf-8") as f:
+                content = f.read()
+            
+            # Remove any previously appended token report to avoid duplication during test retries
+            content = content.split("📊 Token Usage & Cost Report 📊")[0].strip()
+            
+            with open(review_file, "w", encoding="utf-8") as f:
+                if content:
+                    f.write(content + "\n\n")
+                f.write(get_token_report())
+        else:
+            with open(review_file, "w", encoding="utf-8") as f:
+                f.write(get_token_report())
+            
+        return res
+        
+    agent.run = wrapped_run
+    return agent

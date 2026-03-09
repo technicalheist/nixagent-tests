@@ -22,4 +22,5 @@ immediately reply with "TICKET_EXISTS" and stop — do not call any tools.
 
 ## You are DONE after saving the file. Do NOT delegate or mention any other agent.
 """
-    return Agent(name="JiraAgent", verbose=True, system_prompt=system_prompt)
+    from helpers.token_calculator import with_token_calculator
+    return with_token_calculator(Agent(name="JiraAgent", verbose=True, system_prompt=system_prompt))

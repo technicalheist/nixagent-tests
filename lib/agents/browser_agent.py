@@ -109,7 +109,8 @@ Do NOT wait until the end. If you wait until the end to log, data may be missed.
 - NEVER execute Python scripts.
 """
 
-    return Agent(
+    from helpers.token_calculator import with_token_calculator
+    return with_token_calculator(Agent(
         name="BrowserAgent",
         verbose=True,
         system_prompt=system_prompt,
@@ -118,5 +119,5 @@ Do NOT wait until the end. If you wait until the end to log, data may be missed.
         # Register browser_use as a native custom tool
         custom_tools={"browser_use": browser_use},
         custom_tool_defs=[BROWSER_USE_TOOL_SCHEMA],
-    )
+    ))
 

@@ -55,4 +55,5 @@ NEVER omit the `--timeout` flag.
 
 ## Do NOT fix the code yourself. The pipeline hands your feedback to the developer.
 """
-    return Agent(name="TesterAgent", verbose=True, system_prompt=system_prompt)
+    from helpers.token_calculator import with_token_calculator
+    return with_token_calculator(Agent(name="TesterAgent", verbose=True, system_prompt=system_prompt))

@@ -42,7 +42,22 @@ PYTHON_EXE = _venv_python if os.path.isfile(_venv_python) else sys.executable
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    from dotenv import load_dotenv
+    load_dotenv()
+    
+    provider = os.getenv("PROVIDER", "openai").lower()
+    if provider == "anthropic":
+        model_name = os.getenv("ANTHROPIC_MODEL", "claude-3-opus-20240229")
+    elif provider == "gemini":
+        model_name = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    elif provider == "vertex":
+        model_name = os.getenv("VERTEX_MODEL", "gemini-2.5-flash-lite")
+    elif provider == "qwen":
+        model_name = os.getenv("QWEN_MODEL", "qwen3.5-plus")
+    else:
+        model_name = os.getenv("OPENAI_MODEL", "gpt-4o")
+        
+    return render_template("index.html", active_model=model_name)
 
 
 @app.route("/api/tests")
@@ -231,13 +246,13 @@ def get_artifact():
 
     # ── Special case: run_all_test ───────────────────────────────────────────
     if test_id == "run_all_test":
-        if af_type == "report":
+        if af_type == "consolidated" or af_type == "report":
             # Serve the AI-consolidated report
             path = os.path.join(BASE_DIR, "public", "report", "consolidated_report.md")
             if not os.path.isfile(path):
                 return jsonify({"error": "Consolidated report not generated yet"}), 404
             with open(path, "r", encoding="utf-8", errors="replace") as f:
-                return jsonify({"content": f.read(), "type": "report"})
+                return jsonify({"content": f.read(), "type": af_type})
         elif af_type == "ticket":
             # Build a combined listing of all individual tickets
             ticket_dir = os.path.join(BASE_DIR, "public", "tickets")

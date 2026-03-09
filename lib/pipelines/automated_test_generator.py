@@ -69,8 +69,10 @@ def automatedTestGenerator(test_id: str, max_iterations: int = 5):
 
     tasks_str = "\n".join(coordinator_tasks)
 
+    from helpers.token_calculator import with_token_calculator
+    
     # Create the primary Coordinator agent
-    coordinator = Agent(
+    coordinator = with_token_calculator(Agent(
         name="Coordinator",
         verbose=True,
         system_prompt=f"""You are the Test Automation Coordinator. Your job is to orchestrate the multi-agent pipeline for test {test_id}.
@@ -79,7 +81,7 @@ You must delegate tasks to your sub-agents in this EXACT order:
 {tasks_str}
 
 Do NOT write code, find locators, test code, or review code yourself. ALWAYS use your agent collaboration tools to perform the steps."""
-    )
+    ))
 
     # Connect the multi-agent network via register_collaborator
     coordinator.register_collaborator(jira_agent, max_iterations=max_iterations)
