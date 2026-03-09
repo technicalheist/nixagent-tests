@@ -57,25 +57,82 @@ def list_tests():
 
 @app.route("/api/agents")
 def get_agents():
-    """Parse the test file and extract Agent(name=...) values in order."""
+    """
+    Collect Agent(name=...) values from the test file AND all library files it
+    transitively imports under BASE_DIR/lib.  Order is preserved; duplicates
+    are removed.
+    """
     test_id   = request.args.get("test", "")
     test_file = os.path.join(TESTS_DIR, f"{test_id}.py")
 
     if not test_id or not os.path.isfile(test_file):
         return jsonify([])
 
-    with open(test_file, "r", encoding="utf-8", errors="replace") as f:
-        source = f.read()
+    LIB_DIR = os.path.join(BASE_DIR, "lib")
 
-    # Match Agent(name="...") or Agent(name='...') — order preserved
-    names = re.findall(r'Agent\s*\(\s*name\s*=\s*["\']([^"\']+)["\']', source)
+    # ── helpers ──────────────────────────────────────────────────────────────
 
-    # Deduplicate while preserving order (factory functions repeat names)
-    seen, unique = set(), []
-    for n in names:
-        if n not in seen:
-            seen.add(n)
-            unique.append(n)
+    def _agent_names_in(source: str) -> list:
+        """Return all Agent(name=...) values found in *source* text."""
+        return re.findall(r'Agent\s*\(\s*name\s*=\s*["\']([^"\']+)["\']', source)
+
+    def _py_file_for_import(module_name: str) -> str | None:
+        """
+        Try to resolve a bare module name (e.g. 'pipelines.automated_test_generator'
+        or 'agents.jira_agent') to an absolute .py path under LIB_DIR.
+        Returns None if not found.
+        """
+        parts  = module_name.replace(".", os.sep)
+        # direct file
+        direct = os.path.join(LIB_DIR, parts + ".py")
+        if os.path.isfile(direct):
+            return direct
+        # package __init__
+        pkg = os.path.join(LIB_DIR, parts, "__init__.py")
+        if os.path.isfile(pkg):
+            return pkg
+        return None
+
+    def _imports_in(source: str) -> list:
+        """Extract module names from 'from X import ...' and 'import X' lines."""
+        modules = []
+        for m in re.finditer(r'^\s*from\s+([\w.]+)\s+import', source, re.MULTILINE):
+            modules.append(m.group(1))
+        for m in re.finditer(r'^\s*import\s+([\w.,\s]+)', source, re.MULTILINE):
+            for part in m.group(1).split(","):
+                modules.append(part.strip().split()[0])
+        return modules
+
+    # ── BFS over reachable lib files ─────────────────────────────────────────
+
+    visited: set  = set()
+    queue:   list = [test_file]
+    seen_names: set  = set()
+    unique:     list = []
+
+    while queue:
+        path = queue.pop(0)
+        if path in visited:
+            continue
+        visited.add(path)
+
+        try:
+            with open(path, "r", encoding="utf-8", errors="replace") as fh:
+                src = fh.read()
+        except OSError:
+            continue
+
+        # Collect agent names from this file
+        for name in _agent_names_in(src):
+            if name not in seen_names:
+                seen_names.add(name)
+                unique.append(name)
+
+        # Enqueue reachable lib files (only if they live under LIB_DIR)
+        for mod in _imports_in(src):
+            resolved = _py_file_for_import(mod)
+            if resolved and resolved not in visited:
+                queue.append(resolved)
 
     return jsonify(unique)
 
