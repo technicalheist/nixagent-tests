@@ -1,5 +1,5 @@
 """
-tests/THIN-19.py
+tests/THIN-20.py
 ────────────────
 Executes the test pipeline for THIN-19.
 """
@@ -13,8 +13,8 @@ if lib_path not in sys.path:
     sys.path.insert(0, lib_path)
 
 from helpers.utils import setup_stdout_encoding
-from pipelines.local_pipeline import local_programmatic_pipeline
+from pipelines.automated_test_generator import automatedTestGenerator
 
 if __name__ == "__main__":
     setup_stdout_encoding()
-    local_programmatic_pipeline("THIN-20", max_iterations=100)
+    automatedTestGenerator("THIN-20", max_iterations=20)
