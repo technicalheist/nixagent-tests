@@ -30,7 +30,7 @@ def automatedTestGenerator(test_id: str, max_iterations: int = 5):
     jira_agent = make_jira_agent(test_id, ticket_file)
     browser_agent = make_browser_agent(test_id, ticket_file, locator_file)
     dev_agent = make_developer_agent(test_id, ticket_file, spec_file, locator_file)
-    tester_agent = make_tester_agent(test_id, report_file)
+    tester_agent = make_tester_agent(test_id, report_file, spec_file)
     reviewer_agent = make_code_reviewer_agent(test_id, review_file, ticket_file, report_file)
 
     import os
