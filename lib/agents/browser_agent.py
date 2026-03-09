@@ -74,9 +74,13 @@ Each action is a separate browser_use call — never combine commands.
 
   c) Study the state output to identify element indices (e.g. [0] button "Login").
 
-  d) For each required interaction:
-       browser_use('input <index> "value-from-ticket"')
-       browser_use("click <index>")
+  d) Execution Rules:
+       - You MUST go through ALL fields and inputs using the browser tool.
+       - Identify and add any validation points (e.g., error messages, required states).
+       - You MUST submit all the forms exactly as per the requirement.
+       - Examples:
+           browser_use('input <index> "value-from-ticket"')
+           browser_use("click <index>")
 
   e) After DOM changes, state is auto-returned in the previous command response.
      Indices reset after navigation — always read the fresh state before acting.
@@ -84,13 +88,14 @@ Each action is a separate browser_use call — never combine commands.
   f) browser_use("close --all")   ← always close when finished
 
 ## STEP 3: CONTINUOUS LOGGING (CRITICAL)
-Do NOT wait until the end. Log findings IMMEDIATELY after each discovery step.
+Do NOT wait until the end. If you wait until the end to log, data may be missed. You MUST update the documentation with the locator data immediately after EACH iteration/step.
 
 1. **Technical Locator Summary File:**
    After every browser_use("state") response, append findings to:
    `{locator_file}`
    Markdown table columns:
-     Action Needed | Element Description | ID | getByRole | getByText | XPath | Recommended Playwright Command
+     Action Needed | Element Description | ID | Name | Class | Full HTML Tag (with all attributes) | getByRole | getByText | XPath | Recommended Playwright Command
+   Make sure to include the complete HTML tag with all its attributes to help the developer understand the element's actual DOM structure.
    Only log locators relevant to the NEW ticket steps.
 
 2. When ALL steps are complete, tell the Coordinator you have finished and

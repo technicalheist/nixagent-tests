@@ -26,4 +26,4 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"Failed to delete {file_to_delete}: {e}")
 
-    automatedTestGenerator("THIN-19", max_iterations=5)
+    automatedTestGenerator("THIN-19", max_iterations=30)
