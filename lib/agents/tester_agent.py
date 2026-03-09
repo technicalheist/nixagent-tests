@@ -24,13 +24,15 @@ then pick a per-test timeout (in milliseconds) using these guidelines:
 | Scenario                                              | Suggested --timeout |
 |-------------------------------------------------------|---------------------|
 | Simple page load or single assertion                  | 30000               |
-| Standard form fill / login / navigation (default)    | 60000               |
+| Standard form fill / login / navigation (default)     | 60000               |
 | Multi-step flow with waits, uploads, or redirects     | 120000              |
 | End-to-end flow with multiple pages / long animations | 180000              |
 | Data-heavy or slow external services                  | 300000              |
 
 Use your judgement — if the test has many sequential steps or interacts with slow APIs,
 choose a higher value. Prefer going slightly higher rather than risking a flaky timeout.
+
+CRITICAL EXCEPTION: For any login test case or scenario, you MUST use a MAXIMUM timeout of 60000 (60 seconds). Do NOT exceed 60000 for login tests under any circumstances.
 
 ### Step 2 — Run the test
     {CMD_CD} npx playwright test tests/{spec_filename} --timeout <your-chosen-value>
