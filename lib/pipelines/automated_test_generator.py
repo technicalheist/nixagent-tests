@@ -82,15 +82,15 @@ Do NOT write code, find locators, test code, or review code yourself. ALWAYS use
     )
 
     # Connect the multi-agent network via register_collaborator
-    coordinator.register_collaborator(jira_agent)
-    coordinator.register_collaborator(browser_agent, max_iterations=100)  # BrowserAgent needs high limits for shell logs
-    coordinator.register_collaborator(dev_agent)
-    coordinator.register_collaborator(tester_agent)
-    coordinator.register_collaborator(reviewer_agent)
+    coordinator.register_collaborator(jira_agent, max_iterations=max_iterations)
+    coordinator.register_collaborator(browser_agent, max_iterations=max_iterations)
+    coordinator.register_collaborator(dev_agent, max_iterations=max_iterations)
+    coordinator.register_collaborator(tester_agent, max_iterations=max_iterations)
+    coordinator.register_collaborator(reviewer_agent, max_iterations=max_iterations)
 
     # Launch sequence
     print(f"\n[Pipeline] Launching Coordinator Agent...")
-    response = coordinator.run("Execute the 5-step multi-agent automated testing pipeline for this ticket.")
+    response = coordinator.run("Execute the 5-step multi-agent automated testing pipeline for this ticket.", max_iterations=max_iterations)
     
     banner("PIPELINE COMPLETE")
     print("--- Final Coordinator Summary ---")
