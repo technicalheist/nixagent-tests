@@ -17,4 +17,4 @@ from pipelines.automated_test_generator import automatedTestGenerator
 
 if __name__ == "__main__":
     setup_stdout_encoding()
-    automatedTestGenerator("THIN-21", max_iterations=20)
+    automatedTestGenerator("THIN-21", max_iterations=30)

@@ -54,7 +54,10 @@ Instructions:
         system_prompt=system_prompt
     )
     
-    response = agent.run("Please perform your step-by-step instructions to read all test reports and create a consolidated report.")
+    response = agent.run(
+        "Please perform your step-by-step instructions to read all test reports and create a consolidated report.",
+        max_iterations=20
+    )
     print("\n--- Consolidator Agent Response ---")
     print(response)
 

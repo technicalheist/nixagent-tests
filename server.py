@@ -61,6 +61,9 @@ def get_agents():
     Collect Agent(name=...) values from the test file AND all library files it
     transitively imports under BASE_DIR/lib.  Order is preserved; duplicates
     are removed.
+
+    Special case: run_all_test — scans every sibling THIN-*.py via BFS and
+    appends ConsolidatorAgent (defined inline) at the end.
     """
     test_id   = request.args.get("test", "")
     test_file = os.path.join(TESTS_DIR, f"{test_id}.py")
@@ -103,38 +106,55 @@ def get_agents():
                 modules.append(part.strip().split()[0])
         return modules
 
-    # ── BFS over reachable lib files ─────────────────────────────────────────
+    # ── BFS helper ───────────────────────────────────────────────────────────
 
-    visited: set  = set()
-    queue:   list = [test_file]
-    seen_names: set  = set()
-    unique:     list = []
+    def _bfs_agents(seed_files: list) -> list:
+        """Return ordered, deduplicated agent names reachable from seed_files."""
+        visited: set     = set()
+        queue:   list    = list(seed_files)
+        seen:    set     = set()
+        names:   list    = []
 
-    while queue:
-        path = queue.pop(0)
-        if path in visited:
-            continue
-        visited.add(path)
+        while queue:
+            path = queue.pop(0)
+            if path in visited:
+                continue
+            visited.add(path)
 
-        try:
-            with open(path, "r", encoding="utf-8", errors="replace") as fh:
-                src = fh.read()
-        except OSError:
-            continue
+            try:
+                with open(path, "r", encoding="utf-8", errors="replace") as fh:
+                    src = fh.read()
+            except OSError:
+                continue
 
-        # Collect agent names from this file
-        for name in _agent_names_in(src):
-            if name not in seen_names:
-                seen_names.add(name)
-                unique.append(name)
+            for name in _agent_names_in(src):
+                if name not in seen:
+                    seen.add(name)
+                    names.append(name)
 
-        # Enqueue reachable lib files (only if they live under LIB_DIR)
-        for mod in _imports_in(src):
-            resolved = _py_file_for_import(mod)
-            if resolved and resolved not in visited:
-                queue.append(resolved)
+            for mod in _imports_in(src):
+                resolved = _py_file_for_import(mod)
+                if resolved and resolved not in visited:
+                    queue.append(resolved)
 
-    return jsonify(unique)
+        return names
+
+    # ── Special case: run_all_test ───────────────────────────────────────────
+    if test_id == "run_all_test":
+        # Seed BFS with every THIN-*.py in the tests folder
+        sibling_files = sorted(
+            f for f in glob.glob(os.path.join(TESTS_DIR, "*.py"))
+            if os.path.basename(f) not in ("run_all_test.py",)
+            and not os.path.basename(f).startswith("__")
+        )
+        agents = _bfs_agents(sibling_files)
+        # ConsolidatorAgent lives inline in run_all_test.py — add it explicitly
+        if "ConsolidatorAgent" not in agents:
+            agents.append("ConsolidatorAgent")
+        return jsonify(agents)
+
+    # ── Standard case ────────────────────────────────────────────────────────
+    return jsonify(_bfs_agents([test_file]))
 
 
 
@@ -209,6 +229,43 @@ def get_artifact():
     test_id = request.args.get("test", "")
     af_type = request.args.get("type", "")
 
+    # ── Special case: run_all_test ───────────────────────────────────────────
+    if test_id == "run_all_test":
+        if af_type == "report":
+            # Serve the AI-consolidated report
+            path = os.path.join(BASE_DIR, "public", "report", "consolidated_report.md")
+            if not os.path.isfile(path):
+                return jsonify({"error": "Consolidated report not generated yet"}), 404
+            with open(path, "r", encoding="utf-8", errors="replace") as f:
+                return jsonify({"content": f.read(), "type": "report"})
+        elif af_type == "ticket":
+            # Build a combined listing of all individual tickets
+            ticket_dir = os.path.join(BASE_DIR, "public", "tickets")
+            lines = ["# All Tickets\n"]
+            for md in sorted(glob.glob(os.path.join(ticket_dir, "THIN-*.md"))):
+                tid = os.path.basename(md).replace(".md", "")
+                lines.append(f"---\n## {tid}\n")
+                with open(md, "r", encoding="utf-8", errors="replace") as f:
+                    lines.append(f.read())
+            if len(lines) == 1:
+                return jsonify({"error": "No individual tickets found yet"}), 404
+            return jsonify({"content": "\n".join(lines), "type": "ticket"})
+        elif af_type == "review":
+            # Build a combined code-review listing
+            review_dir = os.path.join(BASE_DIR, "public", "code-review")
+            lines = ["# All Code Reviews\n"]
+            for md in sorted(glob.glob(os.path.join(review_dir, "THIN-*.md"))):
+                tid = os.path.basename(md).replace(".md", "")
+                lines.append(f"---\n## {tid}\n")
+                with open(md, "r", encoding="utf-8", errors="replace") as f:
+                    lines.append(f.read())
+            if len(lines) == 1:
+                return jsonify({"error": "No individual code reviews found yet"}), 404
+            return jsonify({"content": "\n".join(lines), "type": "review"})
+        else:  # spec — not applicable for run_all_test
+            return jsonify({"error": "No single spec file for run_all_test — see individual tests"}), 404
+
+    # ── Standard case ────────────────────────────────────────────────────────
     paths = {
         "ticket": os.path.join(BASE_DIR, "public", "tickets",           f"{test_id}.md"),
         "spec":   os.path.join(BASE_DIR, "public", "projects", "tests", f"{test_id}.spec.js"),
